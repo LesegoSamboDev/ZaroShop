@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="zaroshop.client/zaroshop.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="ZaroShop.Server/ZaroShop.Server.csproj" />
+</Solution>
