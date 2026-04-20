@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using ZaroShop.Server.Data;
+using ZaroShop.Server.Extensions;
 using ZaroShop.Server.Interfaces;
 using ZaroShop.Server.Models.DTOs;
 using ZaroShop.Server.Models.Entities;
@@ -13,57 +12,44 @@ namespace ZaroShop.Server.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IRepository<Product> _productRepo;
     private readonly IProductSearchEngine _searchEngine;
 
-    public ProductsController(AppDbContext context, IProductSearchEngine searchEngine)
+    public ProductsController(IRepository<Product> productRepo, IProductSearchEngine searchEngine)
     {
-        _context = context;
+        _productRepo = productRepo;
         _searchEngine = searchEngine;
     }
 
-    // GET: /api/products (Pagination, Category Filter, and Search)
     [HttpGet]
-    public async Task<IActionResult> GetProducts(
+    public IActionResult GetProducts(
         [FromQuery] string? name,
         [FromQuery] int? categoryId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] decimal? minPrice,
+        [FromQuery] decimal? maxPrice,
+        [FromQuery] bool onlyInStock = false)
     {
-        // Demonstrate usage of the Search Engine for the 'name' filter
-        IEnumerable<Product> queryResult;
+        var products = _productRepo.GetAll();
 
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            queryResult = _searchEngine.Search(name);
-        }
-        else
-        {
-            queryResult = await _context.Products.Include(p => p.Category).ToListAsync();
-        }
+        var filtered = products
+            .FilterByName(name)
+            .FilterByCategory(categoryId)
+            .FilterByPriceRange(minPrice, maxPrice)
+            .FilterInStock(onlyInStock)
+            .ToList();
 
-        // Apply Category Filter using custom LINQ logic if needed
-        if (categoryId.HasValue)
-        {
-            queryResult = queryResult.Where(p => p.CategoryId == categoryId.Value);
-        }
+        // Demonstrating IComparable sorting if no specific filter is applied
+        filtered.Sort();
 
-        // Manual Pagination
-        var totalItems = queryResult.Count();
-        var items = queryResult
-            .OrderBy(p => p.Name) // Default sort
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize);
-            //.Select(p => new Models.DTOs.ProductDto(p.Id, p.Name, p.SKU, p.Price, p.Quantity, p.Category?.Name ?? "Uncategorized"));
-
-        return Ok(new { Total = totalItems, Page = page, Items = items });
+        return Ok(filtered);
     }
 
     // GET: /api/products/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
+    public ActionResult<Product> GetProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
+        // Now using the Repository instead of _context
+        var product = _productRepo.GetById(id);
         return product is null ? NotFound() : Ok(product);
     }
 
@@ -77,7 +63,7 @@ public class ProductsController : ControllerBase
         var request = JsonSerializer.Deserialize<CreateProductRequest>(body,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-        // Pattern Matching Validation
+        // Pattern Matching Validation (Requirement)
         if (request is not { Name.Length: > 0, Price: > 0, Quantity: >= 0 })
         {
             return BadRequest("Invalid product data. Price must be > 0 and Quantity >= 0.");
@@ -89,61 +75,50 @@ public class ProductsController : ControllerBase
             SKU = request.SKU,
             Price = request.Price,
             Quantity = request.Quantity,
-            CategoryId = request.CategoryId,
-            CreatedAt = DateTime.UtcNow
+            CategoryId = request.CategoryId
         };
 
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        _searchEngine.ClearCache(); // Invalidate cache on change
+        // Saving through the Repository
+        _productRepo.Add(product);
+        _searchEngine.ClearCache();
 
         return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
     }
 
     // PUT: /api/products/{id}
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product updatedProduct)
+    public IActionResult UpdateProduct(int id, [FromBody] Product updatedProduct)
     {
         if (id != updatedProduct.Id) return BadRequest();
 
-        var existing = await _context.Products.FindAsync(id);
+        var existing = _productRepo.GetById(id);
         if (existing is null) return NotFound();
 
-        // Update fields
+        // Update fields on the tracked entity
         existing.Name = updatedProduct.Name;
         existing.Price = updatedProduct.Price;
         existing.Quantity = updatedProduct.Quantity;
         existing.CategoryId = updatedProduct.CategoryId;
-        existing.UpdatedAt = DateTime.UtcNow;
 
-        try
-        {
-            await _context.SaveChangesAsync();
-            _searchEngine.ClearCache();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return Conflict();
-        }
+        _productRepo.Update(existing);
+        _searchEngine.ClearCache();
 
         return NoContent();
     }
 
     // DELETE: /api/products/{id}
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduct(int id)
+    public IActionResult DeleteProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
-        if (product == null) return NotFound();
+        var existing = _productRepo.GetById(id);
+        if (existing == null) return NotFound();
 
-        _context.Products.Remove(product);
-        await _context.SaveChangesAsync();
+        _productRepo.Delete(id);
         _searchEngine.ClearCache();
 
-        // Custom JSON Serialization for the delete response
+        // Requirement: Custom JSON Serialization for the delete response
         var options = new JsonSerializerOptions { WriteIndented = true };
-        var response = JsonSerializer.Serialize(new { Message = $"Product {id} deleted successfully" }, options);
+        var response = JsonSerializer.Serialize(new { Message = $"Product {id} deleted successfully", Timestamp = DateTime.Now }, options);
 
         return Content(response, "application/json");
     }

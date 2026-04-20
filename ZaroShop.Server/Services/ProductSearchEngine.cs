@@ -1,26 +1,42 @@
-﻿using ZaroShop.Server.Data;
-using ZaroShop.Server.Interfaces;
+﻿using ZaroShop.Server.Interfaces;
 using ZaroShop.Server.Models.Entities;
 
-namespace ZaroShop.Server.Services
+namespace ZaroShop.Server.Services;
+
+public class ProductSearchEngine : IProductSearchEngine
 {
-    public class ProductSearchEngine
+    private readonly IRepository<Product> _productRepo;
+
+    private readonly Dictionary<string, IEnumerable<Product>> _cache = new();
+
+    public ProductSearchEngine(IRepository<Product> productRepo)
     {
-        private readonly AppDbContext _db;
-        private readonly Dictionary<string, List<Product>> _cache = new();
+        _productRepo = productRepo;
+    }
 
-        public ProductSearchEngine(AppDbContext db) => _db = db;
+    public IEnumerable<Product> Search(string term)
+    {
+        string cacheKey = term?.Trim().ToLower() ?? string.Empty;
 
-        public List<Product> Search(string term)
+        if (string.IsNullOrEmpty(cacheKey)) return Enumerable.Empty<Product>();
+
+        if (_cache.TryGetValue(cacheKey, out var cachedResults))
         {
-            if (_cache.TryGetValue(term, out var results)) return results;
-
-            var freshResults = _db.Products
-                .Where(p => p.Name.Contains(term) || p.Category!.Name.Contains(term))
-                .ToList();
-
-            _cache[term] = freshResults; // Simple Dictionary Caching
-            return freshResults;
+            return cachedResults;
         }
+
+        var freshResults = _productRepo.GetAll()
+            .Where(p => p.Name.Contains(term!, StringComparison.OrdinalIgnoreCase) ||
+                       (p.Category != null && p.Category.Name.Contains(term!, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        _cache[cacheKey] = freshResults;
+
+        return freshResults;
+    }
+
+    public void ClearCache()
+    {
+        _cache.Clear();
     }
 }

@@ -10,11 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
+builder.Services.AddScoped<IProductSearchEngine, ProductSearchEngine>();
+
+builder.Services.AddScoped<IRepository<Product>, EfRepository<Product>>();
+
+builder.Services.AddSingleton<IRepository<Category>, InMemoryRepository<Category>>();
 
 builder.Services.AddControllers();
-// Register Repositories and Services
-builder.Services.AddSingleton<IRepository<Category>, InMemoryCategoryRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
