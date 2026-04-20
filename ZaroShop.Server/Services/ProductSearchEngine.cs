@@ -1,9 +1,10 @@
 ﻿using ZaroShop.Server.Data;
+using ZaroShop.Server.Interfaces;
 using ZaroShop.Server.Models.Entities;
 
 namespace ZaroShop.Server.Services
 {
-    public class ProductSearchEngine : IProductSearchEngine
+    public class ProductSearchEngine
     {
         private readonly AppDbContext _db;
         private readonly Dictionary<string, List<Product>> _cache = new();
