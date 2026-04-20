@@ -12,5 +12,13 @@
         public Category? Category { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        public int CompareTo(Product? other)
+        {
+            if (other is null) return 1;
+            // Primary sort: Price, Secondary sort: Name
+            int result = Price.CompareTo(other.Price);
+            return result != 0 ? result : string.Compare(Name, other.Name, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ZaroShop.Server.Data;
+using ZaroShop.Server.Interfaces;
+using ZaroShop.Server.Models.Entities;
+using ZaroShop.Server.Repositories;
+using ZaroShop.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,8 +13,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add services to the container.
 
 builder.Services.AddControllers();
+// Register Repositories and Services
+builder.Services.AddSingleton<IRepository<Category>, InMemoryCategoryRepository>();
 
 var app = builder.Build();
+
+app.UseMiddleware<CustomLoggingMiddleware>();
 
 app.UseDefaultFiles();
 app.MapStaticAssets();
