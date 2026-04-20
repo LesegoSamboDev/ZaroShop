@@ -70,7 +70,7 @@ public class CategoriesController : ControllerBase
         var newCategory = new Category
         {
             // Simple ID generation for In-Memory demo
-            Id = _categoryRepo.GetAll().Any() ? _categoryRepo.GetAll().Max(c => c.Id) + 1 : 1,
+            //Id = _categoryRepo.GetAll().Any() ? _categoryRepo.GetAll().Max(c => c.Id) + 1 : 1,
             Name = request.Name,
             Description = request.Description,
             ParentCategoryId = request.ParentCategoryId
@@ -79,6 +79,37 @@ public class CategoriesController : ControllerBase
         _categoryRepo.Add(newCategory);
 
         return CreatedAtAction(nameof(GetCategories), new { id = newCategory.Id }, newCategory);
+    }
+
+    [HttpGet("tree/custom")]
+    public IActionResult GetCustomSerializedTree()
+    {
+        // 1. Get the raw tree data (using the logic we built previously)
+        var allCategories = _categoryRepo.GetAll().ToList();
+        var tree = allCategories
+            .Where(c => c.ParentCategoryId == null)
+            .Select(c => BuildNode(c, allCategories))
+            .ToList();
+
+        // 2. Configure Custom Serialization Options
+        var options = new JsonSerializerOptions
+        {
+            // Makes the JSON human-readable with tabs/spaces
+            WriteIndented = true,
+
+            // Ensures 'ParentCategoryId' becomes 'parentCategoryId' in JSON
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+
+            // Useful if your descriptions contain HTML or special symbols
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        // 3. Manually serialize the object to a string
+        string jsonString = JsonSerializer.Serialize(tree, options);
+
+        // 4. Return as 'application/json'
+        // This bypasses the default output formatters
+        return Content(jsonString, "application/json");
     }
 
     /// <summary>

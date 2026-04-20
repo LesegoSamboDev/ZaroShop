@@ -14,7 +14,7 @@ builder.Services.AddScoped<IProductSearchEngine, ProductSearchEngine>();
 
 builder.Services.AddScoped<IRepository<Product>, EfRepository<Product>>();
 
-builder.Services.AddSingleton<IRepository<Category>, InMemoryRepository<Category>>();
+builder.Services.AddScoped<IRepository<Category>, EfRepository<Category>>();
 
 builder.Services.AddControllers();
 

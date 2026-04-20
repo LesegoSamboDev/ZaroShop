@@ -4,7 +4,6 @@ using ZaroShop.Server.Extensions;
 using ZaroShop.Server.Interfaces;
 using ZaroShop.Server.Models.DTOs;
 using ZaroShop.Server.Models.Entities;
-using static ZaroShop.Server.Models.DTOs.ProductRecords;
 
 namespace ZaroShop.Server.Controllers;
 
@@ -48,9 +47,19 @@ public class ProductsController : ControllerBase
     [HttpGet("{id}")]
     public ActionResult<Product> GetProduct(int id)
     {
-        // Now using the Repository instead of _context
-        var product = _productRepo.GetById(id);
-        return product is null ? NotFound() : Ok(product);
+        var p = _productRepo.GetById(id);
+        if (p is null) return NotFound();
+
+        var response = new ProductResponse(
+            p.Id,
+            p.Name,
+            p.SKU,
+            p.Price,
+            p.Quantity,
+            p.Category?.Name ?? "Uncategorized"
+        );
+
+        return Ok(response);
     }
 
     // POST: /api/products (Demonstrating Manual Model Binding)
@@ -121,5 +130,19 @@ public class ProductsController : ControllerBase
         var response = JsonSerializer.Serialize(new { Message = $"Product {id} deleted successfully", Timestamp = DateTime.Now }, options);
 
         return Content(response, "application/json");
+    }
+
+    [HttpGet("search")]
+    public IActionResult SearchProducts([FromQuery] string query)
+    {
+        // The Controller just passes the string to the Service
+        var results = _searchEngine.Search(query);
+
+        // Map to DTOs for the response
+        var response = results.Select(p => new ProductResponse(
+            p.Id, p.Name, p.SKU, p.Price, p.Quantity, p.Category?.Name ?? "General"
+        ));
+
+        return Ok(response);
     }
 }

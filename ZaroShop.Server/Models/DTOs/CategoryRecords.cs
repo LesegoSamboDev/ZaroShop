@@ -11,5 +11,5 @@ public record CategoryDto(
     string Name,
     string? Description,
     int? ParentCategoryId,
-    List<CategoryDto> Children
+    List<CategoryDto> Children = default!
 );
