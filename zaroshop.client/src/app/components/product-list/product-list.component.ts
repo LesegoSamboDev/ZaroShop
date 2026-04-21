@@ -4,6 +4,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-product-list',
+  standalone: false,
   templateUrl: './product-list.component.html'
 })
 export class ProductListComponent implements OnInit {
@@ -38,8 +39,7 @@ export class ProductListComponent implements OnInit {
     });
   }
 
-  onSearch(event: Event) {
-    const term = (event.target as HTMLInputElement).value;
+  onSearch(term: string) {
     this.searchTerms.next(term);
   }
 
@@ -60,5 +60,23 @@ export class ProductListComponent implements OnInit {
       },
       error: () => this.loading = false
     });
+  }
+
+  onDelete(id: number): void {
+    if (confirm('Are you sure you want to delete this product?')) {
+      this.loading = true;
+      this.productService.deleteProduct (id).subscribe({
+        next: () => {
+          // Refresh the list after successful deletion
+          this.loadAllProducts();
+          console.log('Product deleted successfully');
+        },
+        error: (err) => {
+          this.loading = false;
+          console.error('Error deleting product:', err);
+          alert('Failed to delete product.');
+        }
+      });
+    }
   }
 }

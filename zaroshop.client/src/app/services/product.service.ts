@@ -39,4 +39,8 @@ export class ProductService {
     const params = new HttpParams().set('query', query);
     return this.http.get<Product[]>(`${this.apiUrl}/search`, { params });
   }
+
+  deleteProduct(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
 }

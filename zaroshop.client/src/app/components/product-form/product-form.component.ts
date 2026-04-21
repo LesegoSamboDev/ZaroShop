@@ -5,10 +5,11 @@ import { ProductService, Product } from '../../services/product.service';
 
 @Component({
   selector: 'app-product-form',
-  templateUrl: './product-form.component.html'
+  standalone: false,
+  templateUrl: './product-form.component.html',
 })
 export class ProductFormComponent implements OnInit {
-  productForm: FormGroup;
+  productForm!: FormGroup;
   isEditMode = false;
   productId?: number;
   categories = [

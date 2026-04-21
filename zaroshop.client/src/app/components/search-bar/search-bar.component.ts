@@ -4,6 +4,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-search-bar',
+  standalone: false,
   templateUrl: './search-bar.component.html',
   styleUrls: ['./search-bar.component.css']
 })
