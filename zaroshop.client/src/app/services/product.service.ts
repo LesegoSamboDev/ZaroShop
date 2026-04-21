@@ -19,6 +19,17 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   onlyInStock?: boolean;
+  pageNumber?: number; // Added for pagination
+  pageSize?: number;
+}
+
+// 2. New interface to match the Backend's wrapper object
+export interface PaginatedResponse<T> {
+  totalItems: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  items: T[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,25 +53,25 @@ export class ProductService {
     return this.http.put<void>(`${this.apiUrl}/${id}`, payload);
   }
 
-  getProducts(filters: ProductFilters = {}): Observable<Product[]> {
+  getProducts(filters: ProductFilters = {}): Observable<PaginatedResponse<Product>> {
     let params = new HttpParams();
 
-    // Mapping the search term to the new backend 'search' parameter
     if (filters.search) params = params.set('search', filters.search);
-
     if (filters.name) params = params.set('name', filters.name);
     if (filters.categoryId) params = params.set('categoryId', filters.categoryId.toString());
     if (filters.minPrice) params = params.set('minPrice', filters.minPrice.toString());
     if (filters.maxPrice) params = params.set('maxPrice', filters.maxPrice.toString());
-
     if (filters.onlyInStock) params = params.set('onlyInStock', 'true');
 
-    return this.http.get<Product[]>(this.apiUrl, { params });
+    // 4. Map the new pagination parameters
+    if (filters.pageNumber) params = params.set('pageNumber', filters.pageNumber.toString());
+    if (filters.pageSize) params = params.set('pageSize', filters.pageSize.toString());
+
+    return this.http.get<PaginatedResponse<Product>>(this.apiUrl, { params });
   }
 
-  // This now just calls getProducts with the search filter
-  searchProducts(query: string): Observable<Product[]> {
-    return this.getProducts({ search: query });
+  searchProducts(query: string): Observable<PaginatedResponse<Product>> {
+    return this.getProducts({ search: query, pageNumber: 1, pageSize: 10 });
   }
 
   deleteProduct(id: number): Observable<void> {

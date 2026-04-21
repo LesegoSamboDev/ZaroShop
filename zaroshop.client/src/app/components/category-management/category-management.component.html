@@ -1,0 +1,76 @@
+<div class="management-container container mt-4">
+  <h2>Category Management </h2>
+  <div class="row">
+    <section class="col-md-4 border-end">
+      <div class="card border-0 shadow-sm p-3">
+        <h3 class="h5 mb-3">Create New Category</h3>
+        <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()">
+          <div class="form-group mb-2">
+            <label class="small fw-bold">Name:</label>
+            <input formControlName="name" placeholder="e.g. Electronics" class="form-control">
+          </div>
+
+          <div class="form-group mb-2">
+            <label class="small fw-bold">Description:</label>
+            <textarea formControlName="description" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="small fw-bold">Parent Category:</label>
+            <select formControlName="parentCategoryId" class="form-control">
+              <option [ngValue]="null">None (Root)</option>
+              <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
+            </select>
+          </div>
+
+          <button type="submit" [disabled]="categoryForm.invalid" class="btn btn-primary w-100">
+            <i class="bi bi-plus-lg"></i> Add Category
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section class="col-md-8">
+      <div class="ps-md-4">
+        <h3 class="h5 mb-3">Category Hierarchy</h3>
+        <div class="tree-container bg-white rounded shadow-sm p-3">
+          <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: categoryTree }"></ng-container>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<ng-template #treeNode let-nodes>
+  <ul class="list-unstyled ms-3 border-start">
+    <li *ngFor="let node of nodes" class="py-1">
+      <div class="d-flex align-items-center justify-content-between node-row p-2 rounded">
+
+        <div class="d-flex align-items-center">
+          <button *ngIf="node.children?.length"
+                  (click)="toggleNode(node.id)"
+                  class="btn btn-sm btn-link text-dark p-0 me-2 shadow-none">
+            <i class="bi" [ngClass]="isExpanded(node.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+          </button>
+
+          <span *ngIf="!node.children?.length" class="me-4"></span>
+
+          <span class="fw-medium">{{ node.name }}</span>
+          <small class="text-muted ms-2 d-none d-lg-inline" *ngIf="node.description">
+            — {{ node.description }}
+          </small>
+        </div>
+
+        <div class="node-actions px-2">
+          <button class="btn btn-link btn-sm text-danger p-0" (click)="onDelete(node.id)" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="node.children?.length && isExpanded(node.id)">
+        <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: node.children }"></ng-container>
+      </div>
+    </li>
+  </ul>
+</ng-template>

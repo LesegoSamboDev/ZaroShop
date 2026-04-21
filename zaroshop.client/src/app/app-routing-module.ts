@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { ProductListComponent } from './components/product-list/product-list.component';
 import { ProductFormComponent } from './components/product-form/product-form.component';
+import { CategoryManagementComponent } from './components/category-management/category-management.component';
 
 const routes: Routes = [
   { path: '', redirectTo: 'products', pathMatch: 'full' },
@@ -12,6 +13,8 @@ const routes: Routes = [
   { path: 'products/add', component: ProductFormComponent },
 
   { path: 'products/edit/:id', component: ProductFormComponent },
+
+  { path: 'categories', component: CategoryManagementComponent },
 
   { path: '**', redirectTo: 'products' }
 ];

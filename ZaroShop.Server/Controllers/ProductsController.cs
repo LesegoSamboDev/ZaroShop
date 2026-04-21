@@ -23,29 +23,31 @@ public class ProductsController : ControllerBase
 
     [HttpGet]
     public IActionResult GetProducts(
-        [FromQuery] string? search, // Added for unified search
-        [FromQuery] string? name,
-        [FromQuery] int? categoryId,
-        [FromQuery] decimal? minPrice,
-        [FromQuery] decimal? maxPrice,
-        [FromQuery] bool onlyInStock = false)
+         [FromQuery] string? search,
+         [FromQuery] string? name,
+         [FromQuery] int? categoryId,
+         [FromQuery] decimal? minPrice,
+         [FromQuery] decimal? maxPrice,
+         [FromQuery] bool onlyInStock = false,
+         [FromQuery] int pageNumber = 1, // Default to first page
+         [FromQuery] int pageSize = 10)  // Default size
     {
         List<Product> products;
 
-        // 1. If a 'search' string is provided, use the Search Engine
+        // 1. Unified Data Fetching
         if (!string.IsNullOrWhiteSpace(search))
         {
             products = _searchEngine.Search(search).ToList();
         }
         else
         {
-            // 2. Otherwise, fetch all with Category eager loading
+            // Note: Repository should return IQueryable to make .Include efficient
             products = _productRepo.GetAll()
                 .Include(p => p.Category)
                 .ToList();
         }
 
-        // 3. Apply standard filters to the result (works for both search and list)
+        // 2. Apply Filters (Memory-based filtering after fetch)
         var filteredList = products
             .FilterByName(name)
             .FilterByCategory(categoryId)
@@ -53,13 +55,26 @@ public class ProductsController : ControllerBase
             .FilterInStock(onlyInStock)
             .ToList();
 
-        // 4. Sort using Product's IComparable implementation
+        // 3. Global Sort (Required for consistent pagination)
         filteredList.Sort();
 
-        // 5. Map to DTOs for the response
-        var response = filteredList.Select(ProductResponse.FromEntity);
+        // 4. Pagination Calculation
+        var totalItems = filteredList.Count;
+        var items = filteredList
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(ProductResponse.FromEntity) // Map to DTO here
+            .ToList();
 
-        return Ok(response);
+        // 5. Return Paginated Wrapper
+        return Ok(new
+        {
+            TotalItems = totalItems,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+            Items = items
+        });
     }
 
     // GET: /api/products/{id}

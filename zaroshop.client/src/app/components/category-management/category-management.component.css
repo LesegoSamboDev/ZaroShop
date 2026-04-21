@@ -1,0 +1,94 @@
+.management-container {
+  padding: 20px;
+  font-family: sans-serif;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+.tree-section ul {
+  list-style-type: none;
+  padding-left: 20px;
+  border-left: 1px dashed #ccc;
+}
+
+.node-content {
+  padding: 5px 0;
+}
+
+.desc {
+  color: #666;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+  button:disabled {
+    background-color: #ccc;
+  }
+
+
+.tree-container {
+  min-height: 400px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.node-row {
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+  .node-row:hover {
+    background-color: #f1f3f5;
+  }
+
+ul {
+  padding-left: 1rem;
+}
+
+  /* Vertical line for visual nesting */
+  ul.border-start {
+    border-left: 1px solid #dee2e6 !important;
+  }
+
+.node-actions {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.node-row:hover .node-actions {
+  opacity: 1;
+}
+
+.btn-link {
+  text-decoration: none;
+}
