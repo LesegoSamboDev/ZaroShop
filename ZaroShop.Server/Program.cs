@@ -16,6 +16,16 @@ builder.Services.AddScoped<IRepository<Product>, EfRepository<Product>>();
 
 builder.Services.AddScoped<IRepository<Category>, EfRepository<Category>>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularDevPolicy", policy =>
+    {
+        policy.WithOrigins("https://localhost:57409")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();

@@ -1,37 +1,25 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
-  <div class="container">
-    <a class="navbar-brand d-flex align-items-center" routerLink="/">
-      <i class="bi bi-shop me-2 fs-3 text-warning"></i>
-      <span class="fw-bold tracking-tight">ZARO SHOP</span>
-    </a>
-
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/products" routerLinkActive="active">
-            <i class="bi bi-box-seam me-1"></i> Products
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/products/add" routerLinkActive="active">
-            <i class="bi bi-plus-lg me-1"></i> Add Product
-          </a>
-        </li>
-      </ul>
+<header>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" routerLink="/">
+        <span class="fw-bold text-uppercase">Zaro Shop</span>
+      </a>
+      
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/products" routerLinkActive="active">
+              <i class="bi bi-grid-3x3-gap me-1"></i> Inventory
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
+</header>
 
-<main>
-  <router-outlet></router-outlet>
+<main class="py-4">
+  <div class="container">
+    <router-outlet></router-outlet>
+  </div>
 </main>
-
-<footer class="py-4 mt-5 border-top bg-light">
-  <div class="container text-center">
-    <span class="text-muted small">&copy; 2026 Zaro Shop Management System</span>
-  </div>
-</footer>
