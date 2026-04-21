@@ -1,74 +1,70 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace ZaroShop.Core.Utilities;
+﻿namespace ZaroShop.Server.Utilities;
 
 public class SearchEngine<T> where T : class
 {
-    private readonly List<T> _items;
-    private readonly Dictionary<Func<T, string?>, double> _searchFields;
+    private readonly IEnumerable<T> _items;
+    private readonly List<(Func<T, string?> Selector, double Weight)> _searchFields = new();
 
     public SearchEngine(IEnumerable<T> items)
     {
-        _items = items.ToList();
-        _searchFields = new Dictionary<Func<T, string?>, double>();
+        _items = items;
     }
 
-    // Add a field to search in with a specific weight (e.g., Name = 1.0, SKU = 0.5)
-    public void AddSearchField(Func<T, string?> fieldSelector, double weight)
+    public void AddSearchField(Func<T, string?> selector, double weight)
     {
-        _searchFields[fieldSelector] = weight;
+        _searchFields.Add((selector, weight));
     }
 
-    public IEnumerable<T> Search(string query, int fuzzinessThreshold = 2)
+    public IEnumerable<T> Search(string query, int fuzzinessThreshold)
     {
         if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<T>();
 
-        var scoredResults = new List<(T Item, double Score)>();
-        string normalizedQuery = query.Trim().ToLower();
+        var normalizedQuery = query.Trim().ToLower();
 
-        foreach (var item in _items)
+        return _items
+            .Select(item => new { Item = item, Score = CalculateScore(item, normalizedQuery, fuzzinessThreshold) })
+            .Where(result => result.Score > 0)
+            .OrderByDescending(result => result.Score)
+            .Select(result => result.Item);
+    }
+
+    private double CalculateScore(T item, string query, int threshold)
+    {
+        double totalScore = 0;
+
+        foreach (var (selector, weight) in _searchFields)
         {
-            double totalScore = 0;
+            var value = selector(item)?.Trim().ToLower();
+            if (string.IsNullOrEmpty(value)) continue;
 
-            foreach (var field in _searchFields)
+            // 1. Exact Match (Highest Priority)
+            if (value == query)
             {
-                string? fieldValue = field.Key(item)?.ToLower();
-                if (string.IsNullOrEmpty(fieldValue)) continue;
-
-                double fieldWeight = field.Value;
-
-                // 1. Exact or Contains Match (High Priority)
-                if (fieldValue.Contains(normalizedQuery))
-                {
-                    totalScore += 10 * fieldWeight;
-                }
-                else
-                {
-                    // 2. Fuzzy Matching (Levenshtein Distance)
-                    int distance = ComputeLevenshteinDistance(normalizedQuery, fieldValue);
-                    if (distance <= fuzzinessThreshold)
-                    {
-                        // Score is inversely proportional to distance
-                        totalScore += (5.0 / (distance + 1)) * fieldWeight;
-                    }
-                }
+                totalScore += 100 * weight;
+                continue;
             }
 
-            if (totalScore > 0)
+            // 2. Contains/Prefix Match
+            if (value.Contains(query))
             {
-                scoredResults.Add((item, totalScore));
+                totalScore += 50 * weight;
+                continue;
+            }
+
+            // 3. Fuzzy Match (Levenshtein Distance)
+            int distance = GetLevenshteinDistance(query, value);
+            if (distance <= threshold)
+            {
+                // Score is inversely proportional to distance
+                double fuzzyScore = (1.0 - (double)distance / (Math.Max(query.Length, value.Length))) * 40;
+                totalScore += fuzzyScore * weight;
             }
         }
 
-        return scoredResults
-            .OrderByDescending(x => x.Score)
-            .Select(x => x.Item);
+        return totalScore;
     }
 
-    // Core C# implementation of Levenshtein Distance Algorithm
-    private int ComputeLevenshteinDistance(string s, string t)
+    private int GetLevenshteinDistance(string s, string t)
     {
         int n = s.Length;
         int m = t.Length;
@@ -85,9 +81,7 @@ public class SearchEngine<T> where T : class
             for (int j = 1; j <= m; j++)
             {
                 int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
-                d[i, j] = Math.Min(
-                    Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                    d[i - 1, j - 1] + cost);
+                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
             }
         }
         return d[n, m];

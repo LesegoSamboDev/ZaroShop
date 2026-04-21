@@ -1,6 +1,7 @@
-﻿using ZaroShop.Server.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using ZaroShop.Server.Utilities; // Where your Core C# Challenge class lives
+using ZaroShop.Server.Interfaces;
 using ZaroShop.Server.Models.Entities;
-using ZaroShop.Core.Utilities; // Where your Core C# Challenge class lives
 
 namespace ZaroShop.Server.Services;
 
@@ -21,15 +22,21 @@ public class ProductSearchEngine : IProductSearchEngine
         string cacheKey = term.Trim().ToLower();
         if (_cache.TryGetValue(cacheKey, out var cachedResults)) return cachedResults;
 
-        // 1. Initialize the Utility Engine with fresh data from Repo
-        var engine = new SearchEngine<Product>(_productRepo.GetAll());
+        // 1. Fetch data with Eager Loading (Fixes the null category issue)
+        var products = _productRepo.GetAll()
+            .Include(p => p.Category)
+            .ToList();
 
-        // 2. Configure the weights (Logic belongs here!)
-        engine.AddSearchField(p => p.Name, 1.0);           // Primary focus
-        engine.AddSearchField(p => p.Category?.Name, 0.8); // High focus
-        engine.AddSearchField(p => p.SKU, 0.4);            // Technical focus
+        // 2. Initialize the Generic Engine
+        var engine = new SearchEngine<Product>(products);
 
-        // 3. Execute Fuzzy Search (distance 2 allows for "lptop" -> "laptop")
+        // 3. Configure Weighted Fields
+        engine.AddSearchField(p => p.Name, 1.0);           // Primary
+        engine.AddSearchField(p => p.Category?.Name, 0.8); // Secondary
+        engine.AddSearchField(p => p.SKU, 0.4);            // Technical
+
+        // 4. Execute Search
+        // Setting threshold to 2 is usually enough for "macbok" -> "macbook"
         var freshResults = engine.Search(term, fuzzinessThreshold: 2).ToList();
 
         _cache[cacheKey] = freshResults;

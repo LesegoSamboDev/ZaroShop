@@ -6,8 +6,7 @@ public class InMemoryRepository<T> : IRepository<T> where T : class
 {
     private readonly List<T> _data = new();
 
-    public IEnumerable<T> GetAll() => _data;
-
+    public IQueryable<T> GetAll() => _data.AsQueryable();
     public T? GetById(int id)
     {
         return _data.FirstOrDefault(x => (int?)x.GetType().GetProperty("Id")?.GetValue(x) == id);

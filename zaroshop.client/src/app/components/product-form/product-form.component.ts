@@ -1,8 +1,8 @@
-import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core'; // 1. Added Zone and CD
+import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProductService } from '../../services/product.service';
-import { CategoryService, Category } from '../../services/category.service'; // 2. Import Category Service
+import { CategoryService, Category } from '../../services/category.service';
 
 @Component({
   selector: 'app-product-form',
@@ -13,12 +13,12 @@ export class ProductFormComponent implements OnInit {
   productForm!: FormGroup;
   isEditMode = false;
   productId?: number;
-  categories: Category[] = []; // 3. Empty array for dynamic data
+  categories: Category[] = [];
 
   constructor(
     private fb: FormBuilder,
     private productService: ProductService,
-    private categoryService: CategoryService, // 4. Inject Category Service
+    private categoryService: CategoryService,
     private route: ActivatedRoute,
     private router: Router,
     private ngZone: NgZone,
@@ -28,7 +28,6 @@ export class ProductFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // 5. Load categories and product data
     this.loadCategories();
 
     this.productId = this.route.snapshot.params['id'];
@@ -40,6 +39,7 @@ export class ProductFormComponent implements OnInit {
 
   private initForm() {
     this.productForm = this.fb.group({
+      id: [0], // Added for the update request DTO
       name: ['', [Validators.required, Validators.minLength(3)]],
       sku: ['', [Validators.required, Validators.pattern(/^[A-Z0-9-]+$/)]],
       price: [0, [Validators.required, Validators.min(0.01)]],
@@ -53,7 +53,7 @@ export class ProductFormComponent implements OnInit {
       next: (data) => {
         this.ngZone.run(() => {
           this.categories = data;
-          this.cd.detectChanges(); // Force dropdown to render
+          this.cd.detectChanges();
         });
       },
       error: (err) => console.error('Error fetching industries:', err)
@@ -61,11 +61,18 @@ export class ProductFormComponent implements OnInit {
   }
 
   loadProductData(id: number) {
-    this.productService.getById(id).subscribe(product => {
-      this.ngZone.run(() => {
-        this.productForm.patchValue(product);
-        this.cd.detectChanges(); // Ensure values show up in inputs
-      });
+    this.productService.getById(id).subscribe({
+      next: (product) => {
+        this.ngZone.run(() => {
+          // Flattening the object to match the form fields 
+          // (Backend now returns categoryName, but form needs categoryId)
+          this.productForm.patchValue({
+            ...product,
+            categoryId: product.categoryId // Ensure we map the ID for the dropdown
+          });
+          this.cd.detectChanges();
+        });
+      }
     });
   }
 
@@ -77,7 +84,8 @@ export class ProductFormComponent implements OnInit {
       categoryId: Number(this.productForm.value.categoryId)
     };
 
-    const action$ = (this.isEditMode && this.productId)
+    // Explicitly type action$ as Observable<any>
+    const action$: import('rxjs').Observable<any> = (this.isEditMode && this.productId)
       ? this.productService.updateProduct(this.productId, productData)
       : this.productService.createProduct(productData);
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using ZaroShop.Server.Extensions;
 using ZaroShop.Server.Interfaces;
@@ -22,25 +23,43 @@ public class ProductsController : ControllerBase
 
     [HttpGet]
     public IActionResult GetProducts(
+        [FromQuery] string? search, // Added for unified search
         [FromQuery] string? name,
         [FromQuery] int? categoryId,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] bool onlyInStock = false)
     {
-        var products = _productRepo.GetAll();
+        List<Product> products;
 
-        var filtered = products
+        // 1. If a 'search' string is provided, use the Search Engine
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            products = _searchEngine.Search(search).ToList();
+        }
+        else
+        {
+            // 2. Otherwise, fetch all with Category eager loading
+            products = _productRepo.GetAll()
+                .Include(p => p.Category)
+                .ToList();
+        }
+
+        // 3. Apply standard filters to the result (works for both search and list)
+        var filteredList = products
             .FilterByName(name)
             .FilterByCategory(categoryId)
             .FilterByPriceRange(minPrice, maxPrice)
             .FilterInStock(onlyInStock)
             .ToList();
 
-        // Demonstrating IComparable sorting if no specific filter is applied
-        filtered.Sort();
+        // 4. Sort using Product's IComparable implementation
+        filteredList.Sort();
 
-        return Ok(filtered);
+        // 5. Map to DTOs for the response
+        var response = filteredList.Select(ProductResponse.FromEntity);
+
+        return Ok(response);
     }
 
     // GET: /api/products/{id}
@@ -132,17 +151,4 @@ public class ProductsController : ControllerBase
         return Content(response, "application/json");
     }
 
-    [HttpGet("search")]
-    public IActionResult SearchProducts([FromQuery] string query)
-    {
-        // The Controller just passes the string to the Service
-        var results = _searchEngine.Search(query);
-
-        // Map to DTOs for the response
-        var response = results.Select(p => new ProductResponse(
-            p.Id, p.Name, p.SKU, p.Price, p.Quantity, p.Category?.Name ?? "General"
-        ));
-
-        return Ok(response);
-    }
 }

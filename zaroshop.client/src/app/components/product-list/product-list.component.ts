@@ -38,7 +38,7 @@ export class ProductListComponent implements OnInit {
       debounceTime(300),
       distinctUntilChanged()
     ).subscribe(term => {
-      this.currentFilters.name = term;
+      this.currentFilters.search = term;
       this.applyFilters();
     });
   }

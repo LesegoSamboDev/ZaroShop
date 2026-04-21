@@ -1,4 +1,6 @@
-﻿namespace ZaroShop.Server.Models.DTOs;
+﻿using ZaroShop.Server.Models.Entities;
+
+namespace ZaroShop.Server.Models.DTOs;
 
 public record CreateProductRequest(
     string Name,
@@ -15,4 +17,14 @@ public record ProductResponse(
     decimal Price,
     int Quantity,
     string CategoryName 
-);
+)
+{
+    public static ProductResponse FromEntity(Product p) => new ProductResponse(
+        p.Id,
+        p.Name,
+        p.SKU,
+        p.Price,
+        p.Quantity,
+        p.Category?.Name ?? "Uncategorized" // Safely handles null categories
+    );
+};

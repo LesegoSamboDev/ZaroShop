@@ -15,7 +15,7 @@ public class EfRepository<T> : IRepository<T> where T : class
         _dbSet = context.Set<T>();
     }
 
-    public virtual IEnumerable<T> GetAll() => _dbSet.ToList();
+    public virtual IQueryable<T> GetAll() => _dbSet.AsQueryable();
 
     public virtual T? GetById(int id) => _dbSet.Find(id);
 
