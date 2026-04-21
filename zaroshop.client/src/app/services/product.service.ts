@@ -11,6 +11,14 @@ export interface Product {
   categoryName: string;
 }
 
+export interface ProductFilters {
+  name?: string;
+  categoryId?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  onlyInStock?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private apiUrl = '/api/products';
@@ -29,9 +37,17 @@ export class ProductService {
     return this.http.put(`${this.apiUrl}/${id}`, product);
   }
 
-  getProducts(categoryId?: number): Observable<Product[]> {
+  getProducts(filters: ProductFilters = {}): Observable<Product[]> {
     let params = new HttpParams();
-    if (categoryId) params = params.set('categoryId', categoryId.toString());
+
+    if (filters.name) params = params.set('name', filters.name);
+    if (filters.categoryId) params = params.set('categoryId', filters.categoryId.toString());
+    if (filters.minPrice) params = params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice) params = params.set('maxPrice', filters.maxPrice.toString());
+
+    // Controller defaults to false, so only send if true
+    if (filters.onlyInStock) params = params.set('onlyInStock', 'true');
+
     return this.http.get<Product[]>(this.apiUrl, { params });
   }
 

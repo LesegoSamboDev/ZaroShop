@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { ProductService, Product } from '../../services/product.service';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
+import { ProductService, Product, ProductFilters } from '../../services/product.service';
+import { CategoryService, Category } from '../../services/category.service';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-product-list',
@@ -9,33 +10,74 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 })
 export class ProductListComponent implements OnInit {
   products: Product[] = [];
+  categories: Category[] = [];
   loading = false;
-  private searchTerms = new Subject<string>();
 
-  constructor(private productService: ProductService) { }
+  private searchTerms = new Subject<string>();
+  currentFilters: ProductFilters = {
+    name: '',
+    categoryId: undefined,
+    minPrice: undefined,
+    maxPrice: undefined,
+    onlyInStock: false
+  };
+
+  constructor(
+    private productService: ProductService,
+    private categoryService: CategoryService,
+    private ngZone: NgZone,
+    private cd: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
-    this.loadAllProducts();
+    this.loadCategories();
+    this.applyFilters(); // Initial load
 
-    // Setup reactive search
     this.searchTerms.pipe(
-      debounceTime(300), // Wait 300ms after last keystroke
-      distinctUntilChanged(), // Only search if text changed
-      switchMap(term => {
-        this.loading = true;
-        return term ? this.productService.searchProducts(term) : this.productService.getProducts();
-      })
-    ).subscribe(results => {
-      this.products = results;
-      this.loading = false;
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(term => {
+      this.currentFilters.name = term;
+      this.applyFilters();
     });
   }
 
-  loadAllProducts() {
+  loadCategories() {
+    this.categoryService.getCategories().subscribe({
+      next: (data) => {
+        this.ngZone.run(() => {
+          this.categories = data;
+
+          this.cd.markForCheck(); 
+          this.cd.detectChanges();
+        });
+      },
+      error: (err) => console.error('Category load failed:', err)
+    });
+  }
+
+  applyFilters() {
     this.loading = true;
-    this.productService.getProducts().subscribe(data => {
-      this.products = data;
-      this.loading = false;
+    this.productService.getProducts(this.currentFilters).subscribe({
+      next: (data) => {
+        // 3. Wrap state updates in ngZone.run()
+        this.ngZone.run(() => {
+          this.products = data;
+          this.loading = false;
+
+          this.cd.markForCheck();
+          this.cd.detectChanges();
+          console.log('UI Force Updated. Products:', this.products.length);
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          console.error('Fetch error:', err);
+          this.loading = false;
+
+          this.cd.detectChanges();
+        });
+      }
     });
   }
 
@@ -43,39 +85,27 @@ export class ProductListComponent implements OnInit {
     this.searchTerms.next(term);
   }
 
-  filterByCategory(id: number) {
-    this.loading = true;
-    this.productService.getProducts(id).subscribe(data => {
-      this.products = data;
-      this.loading = false;
-    });
+  updateCategory(id: string) {
+    this.currentFilters.categoryId = id ? +id : undefined;
+    this.applyFilters();
   }
 
-  handleSearch(term: string): void {
-    this.loading = true;
-    this.productService.searchProducts(term).subscribe({
-      next: (results) => {
-        this.products = results;
-        this.loading = false;
-      },
-      error: () => this.loading = false
-    });
+  updateStockFilter(onlyInStock: boolean) {
+    this.currentFilters.onlyInStock = onlyInStock;
+    this.applyFilters();
+  }
+
+  loadAllProducts() {
+    this.currentFilters = { name: '' };
+    this.applyFilters();
   }
 
   onDelete(id: number): void {
     if (confirm('Are you sure you want to delete this product?')) {
-      this.loading = true;
-      this.productService.deleteProduct (id).subscribe({
-        next: () => {
-          // Refresh the list after successful deletion
-          this.loadAllProducts();
-          console.log('Product deleted successfully');
-        },
-        error: (err) => {
-          this.loading = false;
-          console.error('Error deleting product:', err);
-          alert('Failed to delete product.');
-        }
+      // Delete still needs a manual subscribe because it's an action, not a data stream
+      this.productService.deleteProduct(id).subscribe({
+        next: () => this.applyFilters(),
+        error: (err) => alert('Delete failed: ' + err.message)
       });
     }
   }

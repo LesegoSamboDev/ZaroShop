@@ -10,6 +10,8 @@ public class Product : IComparable<Product>
     public int Quantity { get; set; }
     public int CategoryId { get; set; }
     public virtual Category? Category { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public int CompareTo(Product? other)
     {

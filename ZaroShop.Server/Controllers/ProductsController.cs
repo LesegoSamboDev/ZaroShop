@@ -84,7 +84,7 @@ public class ProductsController : ControllerBase
             SKU = request.SKU,
             Price = request.Price,
             Quantity = request.Quantity,
-            CategoryId = request.CategoryId
+            CategoryId = request.CategoryId,
         };
 
         // Saving through the Repository
