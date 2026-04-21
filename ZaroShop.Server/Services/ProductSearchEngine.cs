@@ -22,21 +22,16 @@ public class ProductSearchEngine : IProductSearchEngine
         string cacheKey = term.Trim().ToLower();
         if (_cache.TryGetValue(cacheKey, out var cachedResults)) return cachedResults;
 
-        // 1. Fetch data with Eager Loading (Fixes the null category issue)
         var products = _productRepo.GetAll()
             .Include(p => p.Category)
             .ToList();
 
-        // 2. Initialize the Generic Engine
         var engine = new SearchEngine<Product>(products);
 
-        // 3. Configure Weighted Fields
         engine.AddSearchField(p => p.Name, 1.0);           // Primary
         engine.AddSearchField(p => p.Category?.Name, 0.8); // Secondary
         engine.AddSearchField(p => p.SKU, 0.4);            // Technical
 
-        // 4. Execute Search
-        // Setting threshold to 2 is usually enough for "macbok" -> "macbook"
         var freshResults = engine.Search(term, fuzzinessThreshold: 2).ToList();
 
         _cache[cacheKey] = freshResults;

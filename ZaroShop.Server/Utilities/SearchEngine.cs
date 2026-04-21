@@ -31,33 +31,37 @@ public class SearchEngine<T> where T : class
     private double CalculateScore(T item, string query, int threshold)
     {
         double totalScore = 0;
+        var queryWords = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var (selector, weight) in _searchFields)
         {
             var value = selector(item)?.Trim().ToLower();
             if (string.IsNullOrEmpty(value)) continue;
 
-            // 1. Exact Match (Highest Priority)
-            if (value == query)
-            {
-                totalScore += 100 * weight;
-                continue;
-            }
+            // 1. Exact/Contains Match (High Priority)
+            if (value == query) { totalScore += 100 * weight; continue; }
+            if (value.Contains(query)) { totalScore += 50 * weight; continue; }
 
-            // 2. Contains/Prefix Match
-            if (value.Contains(query))
-            {
-                totalScore += 50 * weight;
-                continue;
-            }
+            // 2. Word-by-Word Fuzzy Match
+            // Split the product name into words (e.g., "Mechanical", "Keyboard")
+            var valueWords = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-            // 3. Fuzzy Match (Levenshtein Distance)
-            int distance = GetLevenshteinDistance(query, value);
-            if (distance <= threshold)
+            foreach (var qWord in queryWords)
             {
-                // Score is inversely proportional to distance
-                double fuzzyScore = (1.0 - (double)distance / (Math.Max(query.Length, value.Length))) * 40;
-                totalScore += fuzzyScore * weight;
+                foreach (var vWord in valueWords)
+                {
+                    // Check if the query word is a fuzzy match for ANY word in the field
+                    int distance = GetLevenshteinDistance(qWord, vWord);
+
+                    if (distance <= threshold)
+                    {
+                        // If word is very short (like "Cat"), threshold should be stricter
+                        if (vWord.Length <= 3 && distance > 0) continue;
+
+                        double fuzzyScore = (1.0 - (double)distance / Math.Max(qWord.Length, vWord.Length)) * 40;
+                        totalScore += fuzzyScore * weight;
+                    }
+                }
             }
         }
 

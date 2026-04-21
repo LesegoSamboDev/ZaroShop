@@ -151,3 +151,5 @@ include related data only when needed, and defer materialisation until the right
 boundary. The search engine and cache layer sit cleanly on top of this foundation,
 each with a single responsibility that can be replaced independently as requirements
 grow.
+
+Video Demo: https://www.youtube.com/watch?v=55S1V9OHN-o

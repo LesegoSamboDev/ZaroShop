@@ -101,4 +101,6 @@ The app will be available at:
 
 The Angular dev server starts automatically via the SPA proxy middleware.
 
+Video Demo: https://www.youtube.com/watch?v=55S1V9OHN-o
+
 ---
