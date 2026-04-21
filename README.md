@@ -1,6 +1,7 @@
 # ZaroShop
 
-A full-stack e-commerce application built with **ASP.NET Core** (.NET 8) and **Angular** (standalone).
+ZaroShop is a full-stack e-commerce API built with **ASP.NET Core 10** and **Angular 21**. 
+With **Bootstrap** as the styling component.
 
 ---
 
