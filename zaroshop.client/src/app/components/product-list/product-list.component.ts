@@ -9,6 +9,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
   templateUrl: './product-list.component.html'
 })
 export class ProductListComponent implements OnInit {
+  viewMode: 'table' | 'grid' = 'table';
   products: Product[] = [];
   categories: Category[] = [];
   loading = false;
