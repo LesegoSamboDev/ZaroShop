@@ -12,10 +12,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<IProductSearchEngine, ProductSearchEngine>();
 
-
 builder.Services.AddScoped<IRepository<Product>, EfRepository<Product>>();
 
 builder.Services.AddScoped<IRepository<Category>, EfRepository<Category>>();
+
+//Cart uses pure in-memory list 
+builder.Services.AddSingleton<ICartRepository, InMemoryCartRepository>();
 
 builder.Services.AddCors(options =>
 {

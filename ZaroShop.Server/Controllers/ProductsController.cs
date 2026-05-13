@@ -34,20 +34,17 @@ public class ProductsController : ControllerBase
     {
         List<Product> products;
 
-        // 1. Unified Data Fetching
         if (!string.IsNullOrWhiteSpace(search))
         {
             products = _searchEngine.Search(search).ToList();
         }
         else
         {
-            // Note: Repository should return IQueryable to make .Include efficient
             products = _productRepo.GetAll()
                 .Include(p => p.Category)
                 .ToList();
         }
 
-        // 2. Apply Filters (Memory-based filtering after fetch)
         var filteredList = products
             .FilterByName(name)
             .FilterByCategory(categoryId)
@@ -55,10 +52,8 @@ public class ProductsController : ControllerBase
             .FilterInStock(onlyInStock)
             .ToList();
 
-        // 3. Global Sort (Required for consistent pagination)
         filteredList.Sort();
 
-        // 4. Pagination Calculation
         var totalItems = filteredList.Count;
         var items = filteredList
             .Skip((pageNumber - 1) * pageSize)
@@ -66,7 +61,6 @@ public class ProductsController : ControllerBase
             .Select(ProductResponse.FromEntity) // Map to DTO here
             .ToList();
 
-        // 5. Return Paginated Wrapper
         return Ok(new
         {
             TotalItems = totalItems,
@@ -121,7 +115,6 @@ public class ProductsController : ControllerBase
             CategoryId = request.CategoryId,
         };
 
-        // Saving through the Repository
         _productRepo.Add(product);
         _searchEngine.ClearCache();
 
